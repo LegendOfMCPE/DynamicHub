@@ -16,4 +16,4 @@ install:
 
 script:
 - cd $TRAVIS_BUILD_DIR/../pm
-- echo './start.sh --no-wizard' | php h.php
+- echo './start.sh --no-wizard' | bin/php7/bin/php h.php
