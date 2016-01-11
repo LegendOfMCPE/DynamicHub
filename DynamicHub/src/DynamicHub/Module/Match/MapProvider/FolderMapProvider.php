@@ -27,7 +27,7 @@ class FolderMapProvider extends ThreadedMapProvider{
 		$this->dir = $dir;
 	}
 
-	protected function extractTo(string $dir) : bool{
+	public function extractTo(string $dir) : bool{
 		FileUtils::copyDirectory($this->dir, $dir);
 	}
 }

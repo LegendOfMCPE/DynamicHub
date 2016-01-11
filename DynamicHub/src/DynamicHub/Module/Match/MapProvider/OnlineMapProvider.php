@@ -27,7 +27,7 @@ class OnlineMapProvider extends ThreadedMapProvider{
 		$this->format = $mode;
 	}
 
-	protected function extractTo(string $dir) : bool{
+	public function extractTo(string $dir) : bool{
 		$buffer = Utils::getURL($this->url);
 		$file = tempnam(sys_get_temp_dir(), "DynHub");
 		file_put_contents($file, $buffer);

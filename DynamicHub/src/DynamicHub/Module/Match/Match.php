@@ -20,7 +20,9 @@ use DynamicHub\Module\Match\MapProvider\ThreadedMapProvider;
 use pocketmine\Player;
 
 abstract class Match{
+	/** @type MatchBasedGame */
 	private $game;
+	/** @type int */
 	private $matchId;
 	/** @type int */
 	private $state;
@@ -30,7 +32,7 @@ abstract class Match{
 	/** @type int in half-seconds */
 	private $startTimer, $prepTimer;
 
-	protected function __construct(MatchBasedGame $game, $matchId){
+	protected function __construct(MatchBasedGame $game, int $matchId){
 		$this->game = $game;
 		$this->matchId = $matchId;
 		$this->state = MatchState::OPEN;
@@ -75,7 +77,7 @@ abstract class Match{
 
 		// add
 		$this->players[$gamer->getId()] = $gamer;
-		$gamer->getPlayer()->teleport($this->getMatchConfig()->getNextPlayerJoinPosition());
+		$gamer->getPlayer()->teleport($config->getNextPlayerJoinPosition());
 
 		// recalculate players
 		$count = count($this->players);
@@ -199,6 +201,11 @@ abstract class Match{
 
 	public abstract function getBaseMap() : ThreadedMapProvider;
 
+	/**
+	 * Returns the initial configuration for <b>this</b> match.
+	 *
+	 * @return MatchBaseConfig
+	 */
 	public abstract function getMatchConfig() : MatchBaseConfig;
 
 	public function changeStateToPreparing(){
