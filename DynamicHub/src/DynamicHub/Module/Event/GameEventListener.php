@@ -41,7 +41,6 @@ class GameEventListener implements EventExecutor, Listener{
 	}
 
 	public function execute(Listener $listener, Event $event){
-		$module = null;
 		if($event instanceof PlayerEvent){
 			$player = $event->getPlayer();
 			$gamer = $this->hub->getGamerForPlayer($player);
@@ -68,10 +67,10 @@ class GameEventListener implements EventExecutor, Listener{
 				}
 			}
 		}
-		if(isset($module)){
+		if(isset($module, $gamer)){
 			foreach($this->handlers as $handler){
 				if($handler->getModule() === $module){
-					$handler->execute($event);
+					$handler->execute($event, $gamer);
 				}
 			}
 		}

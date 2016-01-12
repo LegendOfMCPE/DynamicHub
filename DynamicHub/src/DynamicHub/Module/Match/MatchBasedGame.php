@@ -16,11 +16,18 @@
 namespace DynamicHub\Module\Match;
 
 use DynamicHub\DataProvider\NextIdFetchedCallback;
+use DynamicHub\Gamer\Gamer;
 use DynamicHub\Module\Game;
+use pocketmine\event\Listener;
+use pocketmine\event\player\PlayerMoveEvent;
+use pocketmine\level\Position;
+use pocketmine\Player;
 
-abstract class MatchBasedGame extends Game implements NextIdFetchedCallback{
+abstract class MatchBasedGame extends Game implements NextIdFetchedCallback, Listener{
 	/** @type Match[] */
 	private $matches = [];
+	/** @type MatchGamer[] */
+	private $matchGamers = [];
 
 	public function halfSecondTick(){
 		parent::halfSecondTick();
@@ -45,6 +52,7 @@ abstract class MatchBasedGame extends Game implements NextIdFetchedCallback{
 			if(
 				$match->getState() !== MatchState::OPEN and
 				$match->getState() !== MatchState::PREPARING and
+				$match->getState() !== MatchState::LOADING and
 				$match->getState() !== MatchState::GARBAGE
 			){
 				$running++;
@@ -70,4 +78,44 @@ abstract class MatchBasedGame extends Game implements NextIdFetchedCallback{
 	}
 
 	public abstract function newMatch(int $matchId) : Match;
+
+	public function newMatchGamer(Gamer $gamer) : MatchGamer{
+		return new MatchGamer($gamer);
+	}
+
+	public function onJoin(Gamer $gamer){
+		$gamer->setDefaultVisible(false);
+		$this->matchGamers[$gamer->getId()] = new MatchGamer($gamer);
+	}
+
+	public function onQuit(Gamer $gamer){
+		if(isset($this->matchGamers[$gamer->getId()])){
+			$this->matchGamers[$gamer->getId()]->onQuitGame();
+		}
+	}
+
+	/**
+	 * @param PlayerMoveEvent $event
+	 * @param Gamer           $gamer
+	 *
+	 * @priority        LOW
+	 * @ignoreCancelled true
+	 */
+	public function onMove(PlayerMoveEvent $event, Gamer $gamer){
+		if(isset($this->matchGamers[$gamer->getId()])){ // this check should actually be redundant
+			$mg = $this->matchGamers[$gamer->getId()];
+			if($mg->getCurrentMatch() !== null){
+				$mg->getCurrentMatch()->onMove($event, $gamer);
+			}
+		}
+	}
+
+	/**
+	 * If the game overrides {@link Match::sendPlayersToSpawn()}, no need to implement this function properly, because this won't get called.
+	 */
+	public abstract function getSpawn() : Position;
+
+	public function getMatchGamer(Gamer $gamer){
+		return $this->matchGamers[$gamer->getId()] ?? null;
+	}
 }

@@ -15,6 +15,7 @@
 
 namespace DynamicHub\Module\Event;
 
+use DynamicHub\Gamer\Gamer;
 use DynamicHub\Module\Module;
 use pocketmine\event\Event;
 use pocketmine\event\Listener;
@@ -30,8 +31,8 @@ class RegisteredGameEventHandler implements Listener{
 		$this->method = $method;
 	}
 
-	public function execute(Event $event){
-		$this->listener->{$this->method}($event);
+	public function execute(Event $event, Gamer $gamer){
+		$this->listener->{$this->method}($event, $gamer);
 	}
 
 	public function getModule(){

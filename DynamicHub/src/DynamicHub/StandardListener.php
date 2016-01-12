@@ -16,6 +16,7 @@
 namespace DynamicHub;
 
 use DynamicHub\Gamer\Gamer;
+use pocketmine\event\entity\EntityLevelChangeEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerChatEvent;
 use pocketmine\event\player\PlayerQuitEvent;
@@ -58,5 +59,9 @@ class StandardListener implements Listener{
 				return $gamer instanceof Gamer and $gamer->getModule() === $module;
 			}));
 		}
+	}
+
+	public function onLvChange(EntityLevelChangeEvent $event){
+		// TODO handle visibility stuff
 	}
 }

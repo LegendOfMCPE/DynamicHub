@@ -27,9 +27,9 @@ class CopyMapTask extends AsyncTask{
 	private $gameName;
 	private $matchId;
 
-	public function __construct(ThreadedMapProvider $provider, Server $server, $mapName, Match $match){
+	public function __construct(ThreadedMapProvider $provider, $mapName, Match $match){
 		$this->provider = $provider;
-		$this->prefix = $server->getDataPath() . "worlds/room-$mapName-";
+		$this->prefix = $match->getGame()->getHub()->getServer()->getDataPath() . "worlds/room-$mapName-";
 		$this->gameName = $match->getGame()->getName()->get();
 		$this->matchId = $match->getMatchId();
 	}
@@ -42,7 +42,7 @@ class CopyMapTask extends AsyncTask{
 		}
 		mkdir($dir = $this->prefix . $i);
 		$this->provider->extractTo($dir);
-		$this->setResult($dir);
+		$this->setResult(substr($dir, 7));
 	}
 
 	public function onCompletion(Server $server){

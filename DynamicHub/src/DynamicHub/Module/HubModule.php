@@ -35,11 +35,10 @@ class HubModule extends Module{
 	}
 
 	public function onJoin(Gamer $gamer){
-
+		$gamer->setDefaultVisible(true);
 	}
 
 	public function onQuit(Gamer $gamer){
-
 	}
 
 	public function getHub() : DynamicHub{

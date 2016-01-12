@@ -118,11 +118,15 @@ class DynamicHub extends PluginBase{
 				continue;
 			}
 			$parameters = $method->getParameters();
-			if(count($parameters) !== 1){
+			if(count($parameters) !== 2){
 				continue;
 			}
 			$eventClass = $parameters[0]->getClass();
-			if(!($eventClass instanceof \ReflectionClass)){
+			$gamerClass = $parameters[1]->getClass();
+			if(!($eventClass instanceof \ReflectionClass) or !($gamerClass instanceof \ReflectionClass)){
+				continue;
+			}
+			if($gamerClass->getName() !== Gamer::class){
 				continue;
 			}
 			if(
@@ -201,6 +205,15 @@ class DynamicHub extends PluginBase{
 	 */
 	public function getGamerForPlayer(Player $player){
 		return $this->gamers[$player->getId()] ?? null;
+	}
+
+	/**
+	 * @param int $id
+	 *
+	 * @return Gamer|null
+	 */
+	public function getGamerById(int $id){
+		return $this->gamers[$id] ?? null;
 	}
 
 	public function getLoadedGame(string $name){
