@@ -15,11 +15,16 @@
 
 use DynamicHub\Entry\Goals\Goal;
 
+if(version_compare(PHP_VERSION, "7.0.0", "<")){
+	echo "Fatal: This entry script requires PHP >=7.0.0!\n";
+	exit;
+}
+
 if(!defined("STDIN")){
 	define("STDIN", fopen("php://stdin", "r"));
 }
 
-spl_autoload_register(function ($class){
+spl_autoload_register(function (string $class){
 	$holder = Phar::running() . "/entry/";
 	$file = $holder . str_replace("\\", "/", $class) . ".php";
 	if(is_file($file)){

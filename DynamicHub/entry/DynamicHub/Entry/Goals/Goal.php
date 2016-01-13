@@ -25,7 +25,8 @@ abstract class Goal{
 		self::registerGoal(InstallerGoal::class);
 	}
 
-	public static function registerGoal($class){
+	public static function registerGoal(string $class){
+		/** @type string|Goal $class */
 		if(isset(self::$goals[strtolower($class::GOAL_NAME)])){
 			throw new \RuntimeException("Goal " . $class::GOAL_NAME . " ($class) is already registered!");
 		}
