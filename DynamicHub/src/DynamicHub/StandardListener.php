@@ -3,7 +3,7 @@
 /*
  * DynamicHub
  *
- * Copyright (C) 2015 LegendsOfMCPE
+ * Copyright (C) 2015-2016 LegendsOfMCPE
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -54,7 +54,7 @@ class StandardListener implements Listener{
 				$gamer->getPlayer()->sendMessage("You cannot chat until your account is loaded!"); // TODO translate
 				return;
 			}
-			$event->setRecipients(array_filter($event->getRecipients(), function(Player $player) use ($module){
+			$event->setRecipients(array_filter($event->getRecipients(), function (Player $player) use ($module){
 				$gamer = $this->hub->getGamerForPlayer($player);
 				return $gamer instanceof Gamer and $gamer->getModule() === $module;
 			}));

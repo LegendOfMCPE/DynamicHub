@@ -3,7 +3,7 @@
 /*
  * DynamicHub
  *
- * Copyright (C) 2015 LegendsOfMCPE
+ * Copyright (C) 2015-2016 LegendsOfMCPE
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -21,13 +21,12 @@ use DynamicHub\Module\Game;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\level\Position;
-use pocketmine\Player;
 
 abstract class MatchBasedGame extends Game implements NextIdFetchedCallback, Listener{
 	/** @type Match[] */
 	private $matches = [];
-	/** @type MatchGamer[] */
-	private $matchGamers = [];
+	/** @type MatchUser[] */
+	private $matchUsers = [];
 
 	public function halfSecondTick(){
 		parent::halfSecondTick();
@@ -79,18 +78,18 @@ abstract class MatchBasedGame extends Game implements NextIdFetchedCallback, Lis
 
 	public abstract function newMatch(int $matchId) : Match;
 
-	public function newMatchGamer(Gamer $gamer) : MatchGamer{
-		return new MatchGamer($gamer);
+	public function newMatchUser(Gamer $gamer) : MatchUser{
+		return new MatchUser($gamer);
 	}
 
 	public function onJoin(Gamer $gamer){
 		$gamer->setDefaultVisible(false);
-		$this->matchGamers[$gamer->getId()] = new MatchGamer($gamer);
+		$this->matchUsers[$gamer->getId()] = $this->newMatchUser($gamer);
 	}
 
 	public function onQuit(Gamer $gamer){
-		if(isset($this->matchGamers[$gamer->getId()])){
-			$this->matchGamers[$gamer->getId()]->onQuitGame();
+		if(isset($this->matchUsers[$gamer->getId()])){
+			$this->matchUsers[$gamer->getId()]->onQuitGame();
 		}
 	}
 
@@ -102,8 +101,8 @@ abstract class MatchBasedGame extends Game implements NextIdFetchedCallback, Lis
 	 * @ignoreCancelled true
 	 */
 	public function onMove(PlayerMoveEvent $event, Gamer $gamer){
-		if(isset($this->matchGamers[$gamer->getId()])){ // this check should actually be redundant
-			$mg = $this->matchGamers[$gamer->getId()];
+		if(isset($this->matchUsers[$gamer->getId()])){ // this check should actually be redundant
+			$mg = $this->matchUsers[$gamer->getId()];
 			if($mg->getCurrentMatch() !== null){
 				$mg->getCurrentMatch()->onMove($event, $gamer);
 			}
@@ -111,11 +110,12 @@ abstract class MatchBasedGame extends Game implements NextIdFetchedCallback, Lis
 	}
 
 	/**
-	 * If the game overrides {@link Match::sendPlayersToSpawn()}, no need to implement this function properly, because this won't get called.
+	 * If the game overrides {@link Match::sendPlayersToSpawn()}, no need to implement this function properly, because
+	 * this won't get called.
 	 */
 	public abstract function getSpawn() : Position;
 
-	public function getMatchGamer(Gamer $gamer){
-		return $this->matchGamers[$gamer->getId()] ?? null;
+	public function getMatchUsers(Gamer $gamer){
+		return $this->matchUsers[$gamer->getId()] ?? null;
 	}
 }

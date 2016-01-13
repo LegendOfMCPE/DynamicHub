@@ -3,7 +3,7 @@
 /*
  * DynamicHub
  *
- * Copyright (C) 2015 LegendsOfMCPE
+ * Copyright (C) 2015-2016 LegendsOfMCPE
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -15,7 +15,7 @@
 
 chdir(__DIR__);
 
-$I = 0;
+$i = 0;
 function addDir(Phar $phar, $from, $localDir){
 	global $i;
 	$from = rtrim(realpath($from), "/") . "/";
@@ -30,10 +30,12 @@ function addDir(Phar $phar, $from, $localDir){
 			continue;
 		}
 		$incl = substr($file, strlen($from));
-		$targ = $localDir . $incl;
-		$phar->addFile($file, $targ);
+		$target = $localDir . $incl;
+		$phar->addFile($file, $target);
 		$i++;
+		echo "\r[$i] Added file $target";
 	}
+	echo "\n";
 }
 
 function walkPerms(array $stack, array &$perms){

@@ -3,7 +3,7 @@
 /*
  * DynamicHub
  *
- * Copyright (C) 2015 LegendsOfMCPE
+ * Copyright (C) 2015-2016 LegendsOfMCPE
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -17,7 +17,7 @@ namespace DynamicHub\Module\Match;
 
 use DynamicHub\Gamer\Gamer;
 
-class MatchGamer{
+class MatchUser{
 	/** @type Gamer */
 	private $gamer;
 
@@ -41,6 +41,9 @@ class MatchGamer{
 	}
 
 	/**
+	 * @internal Warning: Do not call this method directly. It should only be called from the Match class remove*** or
+	 *           add*** methods.
+	 *
 	 * @param Match|null $currentMatch
 	 * @param bool       $isSpectator
 	 */
@@ -71,6 +74,10 @@ class MatchGamer{
 
 	public function onQuitGame(){
 		// TODO handle match stuff
+		if($this->currentMatch !== null){
+			$method = $this->isSpectator ? "removeSpectator" : "removePlayer";
+			$this->currentMatch->$method($this->getGamer());
+		}
 	}
 
 	/**

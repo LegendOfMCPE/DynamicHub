@@ -3,7 +3,7 @@
 /*
  * DynamicHub
  *
- * Copyright (C) 2015 LegendsOfMCPE
+ * Copyright (C) 2015-2016 LegendsOfMCPE
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -61,7 +61,7 @@ class DynamicHub extends PluginBase{
 		$this->saveDefaultConfig();
 		$this->single = $this->getConfig()->get("single", false);
 		if($this->single){
-			$this->getServer()->getScheduler()->scheduleDelayedTask(new CallbackPluginTask($this, function(){
+			$this->getServer()->getScheduler()->scheduleDelayedTask(new CallbackPluginTask($this, function (){
 				if(count($this->loadedGames) === 0){
 					$this->getLogger()->critical("No games loaded");
 					$this->getServer()->getPluginManager()->disablePlugin($this);
@@ -77,7 +77,7 @@ class DynamicHub extends PluginBase{
 			new JoinListener($this);
 			$this->hubModule = new HubModule($this);
 		}
-		$this->getServer()->getScheduler()->scheduleDelayedRepeatingTask(new CallbackPluginTask($this, array($this, "halfSecondTick")), 10, 10);
+		$this->getServer()->getScheduler()->scheduleDelayedRepeatingTask(new CallbackPluginTask($this, [$this, "halfSecondTick"]), 10, 10);
 	}
 
 	public function onDisable(){

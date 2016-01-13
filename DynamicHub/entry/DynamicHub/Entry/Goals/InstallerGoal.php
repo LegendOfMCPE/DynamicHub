@@ -13,14 +13,12 @@
  * @author LegendsOfMCPE
  */
 
-namespace DynamicHub\Module\Match;
+namespace DynamicHub\Entry\Goals;
 
-class MatchJoinFault{
-	const FULL = 0;
-	const SEMI_FULL = 1;
-	const CLOSED = 2;
-	const NO_PERM = 3;
-	const NOT_IN_GAME = 4;
+class InstallerGoal extends Goal{
+	const GOAL_NAME = "setup";
 
-	const SUCCESS = -1;
+	public function execute(){
+		// TODO: Implement execute() method.
+	}
 }

@@ -48,7 +48,7 @@ Flow of a Match
     - [x] Change to `RUNNING` hen a certain time limit has passed, as this part is mainly for loading chunks. Do not confuse this stage or the `PREPARATION` stage with the concept of "resource gathering" in Walls servers. The game should only take place within the `RUNNING` stage, as only matches that are `RUNNING` are considered to be having a game.
 
 ## Stage: `RUNNING`
-- [ ] **Initialization**
+- [x] **Initialization**
     - [x] Free all players, initialize all blocks or mechanisms that may be hidden in `LOADING`. This part is mainly implemented by the underlying implementation.
 - [ ] kicked players
     - [ ] players may be kicked from the match if they have lost. In that case, they leave the match as a player, and _may_ join the match as a normal spectator (implementation-dependent).

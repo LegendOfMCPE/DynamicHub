@@ -3,7 +3,7 @@
 /*
  * DynamicHub
  *
- * Copyright (C) 2015 LegendsOfMCPE
+ * Copyright (C) 2015-2016 LegendsOfMCPE
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -18,6 +18,10 @@ namespace DynamicHub\Module\Match;
 use DynamicHub\Gamer\Gamer;
 use DynamicHub\Module\Match\MapProvider\CopyMapTask;
 use DynamicHub\Module\Match\MapProvider\DeleteMapTask;
+use DynamicHub\Module\Match\MapProvider\ThreadedMapProvider;
+use DynamicHub\Module\Match\Vote\Ballot;
+use DynamicHub\Module\Match\Vote\VoteTable;
+use DynamicHub\Utils\StaticTranslatable;
 use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\level\Location;
 use pocketmine\level\Position;
@@ -31,11 +35,13 @@ abstract class Match{
 	private $matchId;
 	/** @type int */
 	private $state;
-	/** @type MatchGamer[] */
+	/** @type MatchUser[] */
 	private $players = [], $spectators = [];
 
 	/** @type int in half-seconds */
 	private $startTimer = null, $prepTimer = null, $loadTimer = null;
+	/** @type VoteTable */
+	private $voteTable;
 	/** @type MatchPrepResult */
 	private $prepResult;
 	/** @type string */
@@ -49,6 +55,9 @@ abstract class Match{
 		$this->state = MatchState::OPEN;
 	}
 
+	/////////////
+	// getters //
+	/////////////
 	public function getGame() : MatchBasedGame{
 		return $this->game;
 	}
@@ -61,8 +70,22 @@ abstract class Match{
 		return $this->state;
 	}
 
+	/**
+	 * @return MatchPrepResult
+	 */
+	public function getPrepResult(){
+		return $this->prepResult;
+	}
+
+	public function getLevel(){
+		return $this->getGame()->getHub()->getServer()->getLevel($this->levelId);
+	}
+
+	///////////////////////
+	// public action API //
+	///////////////////////
 	public function addPlayer(Gamer $gamer, int &$fault = MatchJoinFault::SUCCESS) : bool{
-		$config = $this->getMatchConfig();
+		$config = $this->getMatchBaseConfig();
 
 		// prerequisites
 		if($this->state !== MatchState::OPEN){
@@ -73,7 +96,7 @@ abstract class Match{
 			$fault = MatchJoinFault::NOT_IN_GAME;
 			return false;
 		}
-		$mg = $this->getGame()->getMatchGamer($gamer);
+		$user = $this->getGame()->getMatchUsers($gamer);
 		if(!$this->hasJoinPermission($gamer->getPlayer())){
 			$fault = MatchJoinFault::NO_PERM;
 			return false;
@@ -88,12 +111,14 @@ abstract class Match{
 		}
 
 		// add
-		$this->players[$gamer->getId()] = $mg;
+		$this->players[$gamer->getId()] = $user;
 		$gamer->getPlayer()->teleport($config->getNextPlayerJoinPosition());
+		/** @noinspection PhpInternalEntityUsedInspection */
+		$user->setCurrentMatch($this, false);
 
 		// recalculate players
 		$count = count($this->players);
-		if($count >= $this->getMatchConfig()->minPlayers){ // we can start the timer now
+		if($count >= $this->getMatchBaseConfig()->minPlayers){ // we can start the timer now
 			$this->startTimer = $config->maxWaitTime * 2;
 		}elseif($count >= $config->maxPlayers){
 			$this->startTimer = $config->minWaitTime * 2;
@@ -101,14 +126,14 @@ abstract class Match{
 			$this->startTimer = $config->minWaitTime * 2;
 		}
 
-		$gamer->getPlayer()->teleport($this->getMatchConfig()->getNextPlayerJoinPosition());
-		foreach($this->players as $mg){
-			$player = $mg->getGamer();
+		$gamer->getPlayer()->teleport($this->getMatchBaseConfig()->getNextPlayerJoinPosition());
+		foreach($this->players as $user){
+			$player = $user->getGamer();
 			$player->addExVis($gamer->getPlayer());
 			$gamer->addExVis($player->getPlayer());
 		}
-		foreach($this->spectators as $mg){
-			$mg->getGamer()->addExVis($gamer->getPlayer());
+		foreach($this->spectators as $user){
+			$user->getGamer()->addExVis($gamer->getPlayer());
 		}
 
 		return true;
@@ -126,16 +151,57 @@ abstract class Match{
 			$fault = MatchJoinFault::NOT_IN_GAME;
 			return false;
 		}
-		$this->spectators[$gamer->getId()] = $this->getGame()->getMatchGamer($gamer);
 
-		$gamer->getPlayer()->teleport($this->getMatchConfig()->getNextSpectatorJoinPosition());
-		foreach($this->players as $mg){
-			$player = $mg->getGamer();
-			$player->addExVis($gamer->getPlayer());
+		$this->spectators[$gamer->getId()] = $user = $this->getGame()->getMatchUsers($gamer);
+		/** @noinspection PhpInternalEntityUsedInspection */
+		$user->setCurrentMatch($this, true);
+		$gamer->getPlayer()->teleport($this->getMatchBaseConfig()->getNextSpectatorJoinPosition());
+		foreach($this->players as $player){
+			$player->getGamer()->addExVis($gamer->getPlayer());
 		}
 		return true;
 	}
 
+	public function removePlayer(Gamer $gamer) : bool{
+		if(!isset($this->players[$gamer->getId()])){
+			return false;
+		}
+		/** @noinspection PhpInternalEntityUsedInspection */
+		$this->players[$gamer->getId()]->setCurrentMatch(null);
+		unset($this->players[$gamer->getId()]);
+		if($this->state === MatchState::OPEN){
+			$config = $this->getMatchBaseConfig();
+			if(count($this->players) < $config->minPlayers){
+				$this->startTimer = null;
+			}
+			foreach($this->players as $player){
+				$player->getGamer()->removeExVis($gamer->getPlayer());
+				$gamer->removeExVis($player->getGamer()->getPlayer());
+			}
+			foreach($this->spectators as $spectator){
+				$gamer->removeExVis($spectator->getGamer()->getPlayer());
+			}
+		}
+		return true;
+	}
+
+	public function removeSpectator(Gamer $gamer) : bool{
+		if(isset($this->spectators[$gamer->getId()])){
+			/** @noinspection PhpInternalEntityUsedInspection */
+			$this->spectators[$gamer->getId()]->setCurrentMatch(null);
+			unset($this->spectators[$gamer->getId()]);
+
+			foreach($this->players as $player){
+				$player->getGamer()->removeExVis($gamer->getPlayer());
+			}
+			return true;
+		}
+		return false;
+	}
+
+	////////////////////
+	// tick functions //
+	////////////////////
 	public function halfSecondTick(){
 		if($this->state === MatchState::OPEN){
 			$this->tickOpen();
@@ -145,9 +211,11 @@ abstract class Match{
 	}
 
 	protected function tickOpen(){
-		$this->startTimer--;
-		if($this->startTimer <= 0){
-			$this->changeStateToPreparing();
+		if($this->startTimer !== null){
+			$this->startTimer--;
+			if($this->startTimer <= 0){
+				$this->changeStateToPreparing();
+			}
 		}
 	}
 
@@ -171,7 +239,7 @@ abstract class Match{
 				if($server->loadLevel($this->levelDir)){
 					$level = $server->getLevelByName($this->levelDir);
 					$this->levelId = $level->getId();
-					$this->loadTimer = $this->prepResult->getLoadSeconds() * 2;
+					$this->loadTimer = $this->prepResult->getMapProvider()->getLoadSeconds() * 2;
 					$this->onLoadStart();
 				}else{
 					// TODO invalid level!
@@ -180,36 +248,46 @@ abstract class Match{
 		}
 	}
 
-	public function onMapLoaded(string $dir){
-		$this->levelDir = $dir;
+	/////////////////////////////////
+	// override/abstract functions //
+	/////////////////////////////////
+	/**
+	 * Triggered when RUNNING has ended to release resources related to the level
+	 */
+	protected function releaseLevelResources(){
+		$copy = $this->players;
+		foreach($copy as $player){
+			$this->removePlayer($player->getGamer());
+			$player->getGamer()->getPlayer()->teleport($this->getGame()->getSpawn());
+		}
+		$copy = $this->spectators;
+		foreach($copy as $spectator){
+			$this->removeSpectator($spectator->getGamer());
+			$spectator->getGamer()->getPlayer()->teleport($this->getGame()->getSpawn());
+		}
+		$server = $this->getGame()->getHub()->getServer();
+		$server->unloadLevel($this->getLevel());
+		$server->getScheduler()->scheduleAsyncTask(new DeleteMapTask($this->levelDir));
 	}
 
-	public final function hasJoinPermission(Player $player) : bool{
-		foreach($this->getJoinPermissions() as $perm){
-			if(!$player->hasPermission($perm)){
-				return false;
-			}
-		}
-		return true;
+	/**
+	 * Returns the initial configuration for <b>this</b> match.
+	 *
+	 * @return MatchBaseConfig
+	 */
+	public abstract function getMatchBaseConfig() : MatchBaseConfig;
+
+	protected function toPrepResult(VoteTable $table) : MatchPrepResult{
+		$result = new MatchPrepResult;
+		$result->setMapProvider($this->getMapProviderByName($table->getBallot("map")->getDecision()));
 	}
 
-	public final function hasSemiFullPermission(Player $player) : bool{
-		foreach($this->getSemiFullPermissions() as $perm){
-			if(!$player->hasPermission($perm)){
-				return false;
-			}
-		}
-		return true;
-	}
+	protected abstract function getMapProviderByName(string $name) : ThreadedMapProvider;
 
-	public final function hasSpectatePermission(Player $player) : bool{
-		foreach($this->getSpectatePermissions() as $perm){
-			if(!$player->hasPermission($perm)){
-				return false;
-			}
-		}
-		return true;
-	}
+	/**
+	 * @return string[]
+	 */
+	public abstract function getMapChoices() : array;
 
 	/**
 	 * Player must have all of these permissions to join this game.
@@ -241,45 +319,56 @@ abstract class Match{
 		return [];
 	}
 
-	protected function sendPlayersToSpawn(){
-		foreach($this->players as $gamer){
-			$gamer->setCurrentMatch(null);
-			$gamer->getGamer()->getPlayer()->teleport($this->getGame()->getSpawn());
+	public final function hasJoinPermission(Player $player) : bool{
+		foreach($this->getJoinPermissions() as $perm){
+			if(!$player->hasPermission($perm)){
+				return false;
+			}
 		}
-		foreach($this->spectators as $gamer){
-			$gamer->setCurrentMatch(null);
-			$gamer->getGamer()->getPlayer()->teleport($this->getGame()->getSpawn());
-		}
-		$server =
-			$this->getGame()->getHub()->getServer();
-		$server->unloadLevel($this->getLevel());
-		$server->getScheduler()->scheduleAsyncTask(new DeleteMapTask($this->levelDir));
+		return true;
 	}
 
-	/**
-	 * Returns the initial configuration for <b>this</b> match.
-	 *
-	 * @return MatchBaseConfig
-	 */
-	public abstract function getMatchConfig() : MatchBaseConfig;
+	public final function hasSemiFullPermission(Player $player) : bool{
+		foreach($this->getSemiFullPermissions() as $perm){
+			if(!$player->hasPermission($perm)){
+				return false;
+			}
+		}
+		return true;
+	}
 
-	protected abstract function onPreparationTimeout() : MatchPrepResult;
+	public final function hasSpectatePermission(Player $player) : bool{
+		foreach($this->getSpectatePermissions() as $perm){
+			if(!$player->hasPermission($perm)){
+				return false;
+			}
+		}
+		return true;
+	}
 
+	//////////////////////
+	// state transition //
+	//////////////////////
 	public function changeStateToPreparing(){
 		$this->state = MatchState::PREPARING;
-		$this->prepTimer = $this->getMatchConfig()->maxPrepTime * 2;
+		$this->prepTimer = $this->getMatchBaseConfig()->maxPrepTime * 2;
+		$this->voteTable = new VoteTable($this);
+		$this->voteTable->addBallot(new Ballot(new StaticTranslatable("map"), $this->getMapChoices()));
 	}
 
 	public function changeStateToLoading(){
-		$this->prepResult = $this->onPreparationTimeout();
+		$this->prepResult = $this->toPrepResult($this->voteTable);
 		$server = $this->getGame()->getHub()->getServer();
-		$server->getScheduler()->scheduleAsyncTask(new CopyMapTask(
-			$this->prepResult->getMapProvider(), $this->prepResult->getMapName(), $this));
+		$server->getScheduler()->scheduleAsyncTask(new CopyMapTask($this->prepResult->getMapProvider(), $this));
 		$this->state = MatchState::LOADING;
 	}
 
+	public function onMapLoaded(string $dir){
+		$this->levelDir = $dir;
+	}
+
 	protected function onLoadStart(){
-		$iterator = new \ArrayIterator($this->prepResult->getPlayerLoadPos());
+		$iterator = new \ArrayIterator($this->prepResult->getMapProvider()->getPlayerLoadPos());
 		$level = $this->getLevel();
 		foreach($this->players as $player){
 			$pos = $iterator->current();
@@ -292,7 +381,7 @@ abstract class Match{
 			$player->getGamer()->getPlayer()->teleport(Position::fromObject($pos, $level), $yaw, $pitch);
 			$iterator->next();
 		}
-		$rand = $this->prepResult->getSpectatorLoadPos();
+		$rand = $this->prepResult->getMapProvider()->getSpectatorLoadPos();
 		foreach($this->spectators as $spectator){
 			$pos = $rand[mt_rand(0, count($rand) - 1)];
 			$yaw = null;
@@ -315,6 +404,10 @@ abstract class Match{
 
 	}
 
+	public function garbage(){
+		$this->state = MatchState::GARBAGE;
+	}
+
 	public function onMove(PlayerMoveEvent $event, /** @noinspection PhpUnusedParameterInspection */
 	                       Gamer $gamer){
 		$from = $event->getFrom();
@@ -322,20 +415,5 @@ abstract class Match{
 		if($this->state === MatchState::LOADING and !(new Vector3($to->x, $to->y, $to->z))->equals($from)){
 			$event->setCancelled();
 		}
-	}
-
-	public function garbage(){
-		$this->state = MatchState::GARBAGE;
-	}
-
-	/**
-	 * @return MatchPrepResult
-	 */
-	public function getPrepResult(){
-		return $this->prepResult;
-	}
-
-	public function getLevel(){
-		return $this->getGame()->getHub()->getServer()->getLevel($this->levelId);
 	}
 }
