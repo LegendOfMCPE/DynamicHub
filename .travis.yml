@@ -4,9 +4,9 @@ language: bash
 install:
 - cd ..
 - "git clone https://github.com/PEMapModder/PocketMine-MP.git pm && cd pm && git checkout php7 && git submodule update --init --recursive"
-- wget -O - https://raw.githubusercontent.com/PocketMine/php-build-scripts/php7/compile.sh | bash -s -
-- zip -r php7.zip bin
-- curl -T php7.zip https://transfer.sh/php7.zip
+#- wget -O - https://raw.githubusercontent.com/PocketMine/php-build-scripts/php7/compile.sh | bash -s -
+- wget https://transfer.sh/17uJVK/php7.zip
+- unzip php7.zip
 - mkdir plugins
 - bin/php7/bin/php $TRAVIS_BUILD_DIR/DynamicHub/compile.php
 # - cp -r $TRAVIS_BUILD_DIR/* plugins
