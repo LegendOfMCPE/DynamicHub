@@ -5,14 +5,15 @@ install:
 - cd ..
 - "git clone https://github.com/PEMapModder/PocketMine-MP.git pm && cd pm && git checkout php7 && git submodule update --init --recursive"
 - wget -O - https://raw.githubusercontent.com/PocketMine/php-build-scripts/php7/compile.sh | bash -s -
-# - wget pmt.mcpe.me/php7.zip && unzip php7.zip
+- zip -r php7.zip bin
+- curl -T https://transfer.sh/php7.zip
 - mkdir plugins
 - bin/php7/bin/php $TRAVIS_BUILD_DIR/DynamicHub/compile.php
 # - cp -r $TRAVIS_BUILD_DIR/* plugins
 # - wget -O plugins/DevTools.phar https://github.com/PocketMine/DevTools/releases/download/v1.10.0/DevTools_v1.10.0.phar
 - wget -O plugins/ServerKiller.php https://gist.githubusercontent.com/PEMapModder/48098c1348f3c38b97e9/raw/50994e0318c0083b3cd1ba565be041c30052b1d3/ServerKiller.php
 - cp $TRAVIS_BUILD_DIR/DynamicHub/compile/DynamicHub_Dev.phar plugins
-- wget https://transfer.sh/1bMHPn/wrapper.php
+- wget https://transfer.sh/17rj0U/wrapper.php
 
 script:
 - cd $TRAVIS_BUILD_DIR/../pm
