@@ -17,16 +17,15 @@ Flow of a Match
     - [x] spectators _should_ not affect gameplay, so make them invisible
     - [x] spectators _can_ join at _any_ stage of the match except the `FINALIZING` or `GARBAGE` states
 - [ ] **Termination**: the match will automatically change to `PREPARING` stage:
-    - [ ] if a certain time limit is reached after the match is open and the least number of players is continuously being reached
-    - [ ] _or_ if the strict limit (not semi-full limit) of the number of players have been reached
+    - [x] if a certain time limit is reached after the match is open and the least number of players is continuously being reached
+    - [x] _or_ if the strict limit (not semi-full limit) of the number of players have been reached
     
 ## Stage: `PREPARING`
-- [ ] **Initialization**:
-    - [ ] Teleport players (optionally) to a "preparing room". Players may be invisible or visible to other players and spectators in the same match.
+- [x] **Initialization**:
+    - [x] Teleport players (optionally) to a "preparing room". Players may be invisible or visible to other players and spectators in the same match. (Implementation's responsibility)
     - [x] Gamers in other matches may use the same room, but they will be mutually invisible.
-- [ ] options
-    - [ ] The match _can_ allow (all or certain) players (but _not encouraged to_ allow spectators, as they may casually leave and join random matches) to vote, or in any forms, vote for game rules such as the map to play in, certain rules, etc. The game is responsible to do this, not DynamicHub API.
-        - [x] Implementors must be able to provide a definite time limit for this match to run during the `RUNNING` stage. The time limit _must_ not be exceeded, as it will be displayed to gamers of other matches that are pending for a slot to run.
+- [x] options
+    - [x] The match _can_ allow (all or certain) players (but _not encouraged to_ allow spectators, as they may casually leave and join random matches) to vote, or in any forms, vote for game rules such as the map to play in, certain rules, etc. The game is responsible to do this, not DynamicHub API.
 - [x] **Termination**: the match will automatically change to `LOADING` stage:
     - [x] after a certain time limit (provided by MatchBaseConfig, cannot be renewed) has been reached
     - [x] triggered by the match that preparation has been completed
@@ -50,10 +49,11 @@ Flow of a Match
 ## Stage: `RUNNING`
 - [x] **Initialization**
     - [x] Free all players, initialize all blocks or mechanisms that may be hidden in `LOADING`. This part is mainly implemented by the underlying implementation.
+- [ ] Implementors must be able to provide a definite time limit for this match to run during the `RUNNING` stage. The time limit _must_ not be exceeded, as it will be displayed to gamers of other matches that are pending for a slot to run.
 - [ ] kicked players
     - [ ] players may be kicked from the match if they have lost. In that case, they leave the match as a player, and _may_ join the match as a normal spectator (implementation-dependent).
-- [ ] **Termination**
-    - [ ] Implementors will be reminded when the strict time limit ends. The implementor _must_ end the match immediately. Do _not_ confuse this stage with the concept of "death match" in many survival games servers. The game should only take place within the `RUNNING` stage (of course, except irrelevant things like parkour during waiting).
+- [x] **Termination**
+    - [x] Implementors will be reminded when the strict time limit ends. The implementor _must_ end the match immediately. Do _not_ confuse this stage with the concept of "death match" in many survival games servers. The game should only take place within the `RUNNING` stage (of course, except irrelevant things like parkour during waiting).
 - [x] **Finalization**: unload the level after teleporting away the players and spectators
 
 ## Stage: `FINALIZING`
